@@ -1,5 +1,5 @@
 .DS_Store
-*.bk.cpp
+*.bk.*
 
 
 # Byte-compiled / optimized / DLL files

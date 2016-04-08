@@ -159,7 +159,7 @@ cur.execute("SELECT * FROM towers;")
 for tower in cur:
     
     # print name of the origin tower     
-    print tower[1]
+#     print tower[1]
 
     # get all of the destination towers within 30km of the origin tower
     cur2.execute("select id_tower, tower_name, easting, northing from towers where id_tower != %s and st_dwithin(geom, ST_SetSRID(ST_POINT(%s, %s), 27700), %s);", (tower[0], tower[2], tower[3], 30000))
@@ -172,34 +172,19 @@ for tower in cur:
     
         # loop through each destination tower
         for row in cur2:
-    
-            #print out the origin and destination coordinates (for testing)
-    #         print tower[2], tower[3], row[2], row[3]
-    
-            # build the vrt data tile (this would be one per destination, much slower)
-#             buildVRT2(tower[2], tower[3], row[2], row[3], 10000, wd, dd)
         
             # test for line of sight
-            # TODO: try catch around this so that it logs and continues if there's an error
-            # TODO: replace with Python API call
-#             output = int(subprocess.check_output(["./viewshed", "-q", "--pointtopoint", "--pointtopointax", str(tower[2]), "--pointtopointay", str(tower[3]), "--pointtopointbx", str(row[2]), "--pointtopointby", str(row[3]), "--inputfile", "out.vrt", "--resolution", "50", "--observerheight", "40", "--targetheight", "40"]))
             output = viewshed.doLoS(50, tower[2], tower[3], row[2], row[3], 40, 40, "out.vrt")
-            
-            # viewshed2 outputs rasterised rays to show where was visible
-#             output = int(subprocess.check_output(["./viewshed2", "-q", "--pointtopoint", "--pointtopointax", str(tower[2]), "--pointtopointay", str(tower[3]), "--pointtopointbx", str(row[2]), "--pointtopointby", str(row[3]), "--inputfile", "out.vrt", "--resolution", "50", "--observerheight", "40", "--targetheight", "40", "-f", "data/lines/" + str(row[0]) + ".tif"]))
-        
-            print output
         
             # print the name of all the towers it can see
-#             if(output>0):
-# #                 print "    " + row[1]
-#                 cur3.execute("insert into i_visibility (origin, destination) values (%s, %s);", (tower[0], row[0]))
+            if(output>0):
+#                 print "    " + row[1]
+                cur3.execute("insert into i_visibility (origin, destination) values (%s, %s);", (tower[0], row[0]))
     
-############################
-#     conn.commit() # This is purely for testing if you're going to manually cancel
-#     sys.exit()
-############################
-    print "----------------------------"
+    # Make the changes to the database persistent
+    conn.commit()
+
+#     print "----------------------------"
     
 # Make the changes to the database persistent
 conn.commit()
@@ -209,6 +194,3 @@ cur.close()
 cur2.close()
 cur3.close()
 conn.close()
-
-# select id_tower, tower_name, easting, northing from towers where id_tower != 1526 and st_dwithin(geom, ST_SetSRID(ST_POINT(324850, 242740), 27700), 30000);
-# ./viewshed2 -q --pointtopoint --pointtopointax 324850 --pointtopointay 242740 --pointtopointbx 326539 --pointtopointby 248582 --inputfile out.vrt --resolution 50 --observerheight 40 --targetheight 40 -f line.tif
