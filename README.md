@@ -56,7 +56,7 @@ To compile the command line program:
  gcc viewshed.cpp -framework GDAL -o viewshed -O3
 ```
 
-To rebuild the Python Bindings (requires `swig`):
+To rebuild the Python Bindings (requires [SWIG](http://swig.org/)):
 
 ```
 swig -python -c++ viewshed.i ; python setup.py build_ext --inplace
