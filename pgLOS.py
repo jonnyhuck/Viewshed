@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import csv, sys, math, subprocess, os.path, psycopg2, viewshed
+import os, csv, sys, math, subprocess, psycopg2, viewshed
 
 ###
 # Get the letters for an OS grid reference, 
@@ -51,11 +51,69 @@ def getPath(x, y, dd):
     "Get the tile path required for a given an OS grid reference."
 
     # get the components
-    letters =  getLetters(x, y)
-    numbers =  getNumbers(x, y)
+    letters = getLetters(x, y)
+    numbers = getNumbers(x, y)
 
     # build path for data tile
     return  '/'.join([dd, letters, letters.upper() + numbers + ".asc"])
+
+
+###
+# Construct a blank data tile if it is missing
+###
+def makeBlankTile(x, y, resolution, t, dd):
+    "Construct a blank ascii grid file"
+        
+    # get path to write to
+    path = dd + "/_blanks/"
+    
+    # get the components
+    letters = getLetters(x, y)
+    numbers = getNumbers(x, y)
+    
+    # make sure the directory exists...
+    if not os.path.exists(path):
+        os.makedirs(path)
+    
+    # get file name to write to
+    filePath = path + letters + numbers + ".asc"
+    
+    # get coordinate for bottom left corner
+    tx = math.floor(x / t) * t
+    ty = math.floor(y / t) * t
+    
+    # get size in cells
+    ncols = t / resolution
+    
+    # open a file in write mode
+    fo = open(filePath, "w")
+    
+    # write headers
+    fo.write("ncols         " + str(ncols) + "\n")
+    fo.write("nrows         " + str(ncols) + "\n")
+    fo.write("xllcorner     " + str(tx) + "\n")
+    fo.write("yllcorner     " + str(ty) + "\n")
+    fo.write("cellsize      " + str(resolution) + "\n")
+    fo.write("NODATA_value  -9999\n")
+
+    # write data
+    for index in range(ncols):
+    
+        # initialise a blank string
+        dataLine = ""
+    
+        # make a large enough string of 0's
+        for index in range(ncols):
+            dataLine += "0.0 "
+
+        # write the string to the file
+        fo.write(dataLine  + "\n")
+
+    # Close file
+    fo.close()
+    
+    #return new path
+    return filePath
 
 
 ###
@@ -81,13 +139,16 @@ def buildVRT1(x, y, r, t, wd, dd):
     # get all tiles in question and write to file (1 tile buffer around all sides for edge cases)
     for xi in xrange(tlx - t, brx + t, t):
         for yi in xrange(bry - t, tly + t, t):
+        
+            # get the path of the tile containing the required point
             path = getPath(xi, yi, dd)
 
-            # verify that the file exists... otherwise ignore
+            # verify that the file exists... otherwise make one
             if(os.path.exists(path)):
                 f.write(path + '\n')
             else:
-                print "no data! "+ path
+                path = makePath(x, y, 50, t, dd)
+                f.write(path + '\n')
     
     # finish the file
     f.close()
@@ -119,19 +180,21 @@ def buildVRT2(x1, y1, x2, y2, t, wd, dd):
     # get all tiles in question and write to file (1 tile buffer around all sides for edge cases)
     for xi in xrange(tlx - t, brx + t, t):
         for yi in xrange(bry - t, tly + t, t):
+            
+            # verify that the file exists... otherwise make one
             path = getPath(xi, yi, dd)
 
-            # verify that the file exists... otherwise ignore
+            # verify that the file exists... otherwise make one
             if(os.path.exists(path)):
                 f.write(path + '\n')
             else:
-                print "no data! "+ path
+                path = makePath(x, y, 50, t, dd)
+                f.write(path + '\n')
     
     # finish the file
     f.close()
     
     # build vrt
-    # TODO: replace with Python
     subprocess.call(["gdalbuildvrt", "-q", "-overwrite", "-input_file_list", "in.txt", "out.vrt"])
 
 
@@ -159,7 +222,7 @@ cur.execute("SELECT * FROM towers;")
 for tower in cur:
     
     # print name of the origin tower     
-#     print tower[1]
+    print tower[1]
 
     # get all of the destination towers within 30km of the origin tower
     cur2.execute("select id_tower, tower_name, easting, northing from towers where id_tower != %s and st_dwithin(geom, ST_SetSRID(ST_POINT(%s, %s), 27700), %s);", (tower[0], tower[2], tower[3], 30000))
@@ -181,15 +244,15 @@ for tower in cur:
 #                 print "    " + row[1]
                 cur3.execute("insert into i_visibility (origin, destination) values (%s, %s);", (tower[0], row[0]))
     
-    # Make the changes to the database persistent
+    # make the changes to the database persistent
     conn.commit()
 
 #     print "----------------------------"
     
-# Make the changes to the database persistent
-conn.commit()
+# make the changes to the database persistent
+# conn.commit()
 
-# Close communication with the database
+# close communication with the database
 cur.close()
 cur2.close()
 cur3.close()
