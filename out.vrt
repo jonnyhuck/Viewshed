@@ -2,6 +2,12 @@
   <SRS>PROJCS["British_National_Grid",GEOGCS["GCS_OSGB_1936",DATUM["OSGB_1936",SPHEROID["Airy_1830",6377563.396,299.3249646]],PRIMEM["Greenwich",0],UNIT["Degree",0.017453292519943295]],PROJECTION["Transverse_Mercator"],PARAMETER["False_Easting",400000],PARAMETER["False_Northing",-100000],PARAMETER["Central_Meridian",-2],PARAMETER["Scale_Factor",0.999601272],PARAMETER["Latitude_Of_Origin",49],UNIT["Meter",1]]</SRS>
   <GeoTransform>  2.9000000000000000e+05,  5.0000000000000000e+01,  0.0000000000000000e+00,  2.8000000000000000e+05,  0.0000000000000000e+00, -5.0000000000000000e+01</GeoTransform>
   <VRTRasterBand dataType="Float32" band="1">
+    <Metadata>
+      <MDI key="STATISTICS_MAXIMUM">709.5</MDI>
+      <MDI key="STATISTICS_MEAN">347.74622656293</MDI>
+      <MDI key="STATISTICS_MINIMUM">68.699996948242</MDI>
+      <MDI key="STATISTICS_STDDEV">102.63003191437</MDI>
+    </Metadata>
     <SimpleSource>
       <SourceFilename relativeToVRT="0">/Users/jonnyhuck/Dropbox/Maps/_OS_OPEN_DATA/terr50_gagg_gb/data/sn/SN90.asc</SourceFilename>
       <SourceBand>1</SourceBand>

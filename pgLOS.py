@@ -147,7 +147,7 @@ def buildVRT1(x, y, r, t, wd, dd):
             if(os.path.exists(path)):
                 f.write(path + '\n')
             else:
-                path = makePath(x, y, 50, t, dd)
+                path = makePath(xi, yi, 50, t, dd)
                 f.write(path + '\n')
     
     # finish the file
@@ -188,7 +188,7 @@ def buildVRT2(x1, y1, x2, y2, t, wd, dd):
             if(os.path.exists(path)):
                 f.write(path + '\n')
             else:
-                path = makePath(x, y, 50, t, dd)
+                path = makePath(xi, yi, 50, t, dd)
                 f.write(path + '\n')
     
     # finish the file
