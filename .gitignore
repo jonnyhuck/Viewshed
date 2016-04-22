@@ -1,6 +1,7 @@
 .DS_Store
 *.bk.*
-
+.txt
+.vrt
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
