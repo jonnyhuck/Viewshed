@@ -19,7 +19,7 @@ In order to make a composite viewshed, you can use the [**Faster Calculator**](h
 --observerheight <value> or -o <value> : set the height a.g.l. of the observer.
 --targetheight <value> or -t <value> : set the height a.g.l. of the target.
 
---pointtopoint  or -p : calculate line of sight rather than viewshed 
+--pointtopoint  or -p : calculate line of sight rather than viewshed
 --pointtopointax <value> or -j <value> : set x coordinate of observer.
 --pointtopointay <value> or -k <value> : set y coordinate of observer.
 --pointtopointbx <value> or -l <value> : set x coordinate of target.
@@ -46,14 +46,14 @@ viewshed.doLoS(resolution, observerX, observerY, targetX, targetY, observerHeigh
 ####Requirements:
 * [**GDAL**](http://www.gdal.org/)
 	* **Mac (Homebrew):** `brew install gdal`
-	* **Ubuntu:** `apt-get gdal`
+	* **Ubuntu:** `apt-get install gdal libgdal-dev`
 	* **Windows:** [OSGeo4W](https://trac.osgeo.org/osgeo4w)
 
 ####Building:
 To compile the command line program:
 
 ```
- gcc viewshed.cpp -framework GDAL -o viewshed -O3
+gcc viewshed.cpp -lgdal -lm -o viewshed -O3
 ```
 
 To rebuild the Python Bindings (requires [SWIG](http://swig.org/)):
