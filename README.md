@@ -1,13 +1,13 @@
 # Viewshed
-##A GDAL-based Viewshed command line tool with python bindings
+## A GDAL-based Viewshed command line tool with python bindings
 
-###Written in collaboration with David Gullick at Lancaster University
+### Written in collaboration with David Gullick at Lancaster University
 
 This is a work in progress package for a research project. The goal is to provide a fast and efficient binary viewshed program that can be run either on the command line programatically (via Python) to analyse large batches of data.
 
 In order to make a composite viewshed, you can use the [**Faster Calculator**](https://github.com/jonnyhuck/FasterCalculator) to combine the output binary viewsheds.
 
-####Command Line Usage
+#### Command Line Usage
 
 ```
 ./viewshed
@@ -31,7 +31,7 @@ In order to make a composite viewshed, you can use the [**Faster Calculator**](h
 ```
 
 
-####Python Usage
+#### Python Usage
 
 ```
 import viewshed
@@ -43,15 +43,20 @@ viewshed.doViewshed(radius, resolution, centreX, centreY, observerHeight, target
 viewshed.doLoS(resolution, observerX, observerY, targetX, targetY, observerHeight, targetHeight, inputFile)
 ```
 
-####Requirements:
+#### Requirements:
 * [**GDAL**](http://www.gdal.org/)
 	* **Mac (Homebrew):** `brew install gdal`
 	* **Ubuntu:** `apt-get install gdal libgdal-dev`
 	* **Windows:** [OSGeo4W](https://trac.osgeo.org/osgeo4w)
 
-####Building:
+#### Building:
 To compile the command line program:
 
+##### Mac:
+```
+ gcc viewshed.cpp -framework GDAL -o viewshed -O3
+```
+##### Linux:
 ```
 gcc viewshed.cpp -lgdal -lm -o viewshed -O3
 ```
@@ -62,8 +67,9 @@ To rebuild the Python Bindings (requires [SWIG](http://swig.org/)):
 swig -python -c++ viewshed.i ; python setup.py build_ext --inplace
 ```
 ---
-###TODO:
-* Add in Earth curvature.
+### TODO:
+* Add in Earth curvature and atmospheric refraction.
 * Tidy up code!
 * Add in option to output Line of Sight Lines in GeoTiff
 * Support other map projections
+* Add in more precise / slower trigonometric alternative to Bresenhams line algorithm
