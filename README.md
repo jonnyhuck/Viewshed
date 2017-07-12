@@ -29,7 +29,11 @@ In order to make a composite viewshed, you can use the [**Faster Calculator**](h
 --outputfile <value> or -f <value> : output file name (.tif).
 
 ```
+For example:
 
+`./viewshed -r 20000 -x 345678 -y 456789 -z 50 -o 1.5 -t 100 -i DEM.tif -f VIEWSHED.tif`
+
+Would run a viewshed of 20km around the point 345678,456789 assuming a 1.5m tall person looking for a 100m tall object in the landscape. The input data (50m resolution) would be DEM.tif and the output file would be saved to VIEWSHED.tif
 
 #### Python Usage
 
