@@ -40,7 +40,7 @@ void setupDefaultOptions(Options* op) {
 	op->areUsingPointToPoint = false;
 	
 	//defaults to OSGB, needs to be something...
-	op->projection = "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +units=m +no_defs";
+	op->projection = (char *) "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +units=m +no_defs";
 }
 
 
