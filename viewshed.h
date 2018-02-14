@@ -67,6 +67,9 @@ typedef struct options {
 	//does the user want LoS or Viewshed?
 	int areUsingPointToPoint;
 	
+	//proj4 string (for projection)
+	char * projection;
+	
 } Options;
 
 

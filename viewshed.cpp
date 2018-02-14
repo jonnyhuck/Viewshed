@@ -38,6 +38,9 @@ void setupDefaultOptions(Options* op) {
 	op->by = 0;
 
 	op->areUsingPointToPoint = false;
+	
+	//defaults to OSGB, needs to be something...
+	op->projection = "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +units=m +no_defs";
 }
 
 
@@ -66,6 +69,7 @@ void printOptions(Options* op) {
 	printf("Ay: %i\n", op->ay);
 	printf("Bx: %i\n", op->bx);
 	printf("By: %i\n", op->by);
+	printf("Projection: %s\n", op->projection);
 
 }
 
@@ -375,7 +379,7 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
 	for (curpixel = 0; curpixel <= numpixels; curpixel += data->resolution)
 	{
 
-			int x1pixel = coordinateToPixelX(data, (long)x);
+		int x1pixel = coordinateToPixelX(data, (long)x);
 		int y1pixel = coordinateToPixelY(data, (long)y);
 	
 
@@ -633,6 +637,7 @@ void printHelpInfo() {
 	printf("--resolution <value> or -z <value> : set the resolution of the view data.\n");
 	printf("--observerheight <value> or -o <value> : set the height of the observer (centre).\n");
 	printf("--targetheight <value> or -t <value> : set the height of the target (everywhere).\n");
+	printf("--projection <value> or -e <value> : set projection (Proj4 string).\n");
 
 	printf("--pointtopoint  or -p : enable point to point mode (requires ax,ay,bx,by).\n");
 	printf("--pointtopointax <value> or -j <value> : set pointtopointmode ax value.\n");
@@ -755,11 +760,11 @@ void viewshed() {
 		double adfGeoTransformO[6] = { output.minx, program_options.resolution, 0,  output.maxy, 0, -program_options.resolution };
 		GDALSetGeoTransform(hDstDS, adfGeoTransformO);
 
-		//set to OSGB (limits to GB for now)
+		//set projection
 		OGRSpatialReferenceH hSRS;
 		char *pszSRS_WKT = NULL;
 		hSRS = OSRNewSpatialReference(NULL);
-		OSRImportFromProj4(hSRS, "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +units=m +no_defs");
+		OSRImportFromProj4(hSRS, program_options.projection);
 		OSRExportToWkt(hSRS, &pszSRS_WKT);
 		OSRDestroySpatialReference(hSRS);
 		GDALSetProjection(hDstDS, pszSRS_WKT);
@@ -894,7 +899,7 @@ int lineOfSight() {
  * Utility method for the Python Bindings
  * JJH:
  */
-void doViewshed(int radius, int resolution, int centreX, int centreY, float observerHeight, float targetHeight, char *  inputFile,  char * outputFile){
+void doViewshed(int radius, int resolution, int centreX, int centreY, float observerHeight, float targetHeight, char *  inputFile,  char * outputFile, char * projection){
 	
 	//populate options
 	program_options.radius = radius;
@@ -905,6 +910,7 @@ void doViewshed(int radius, int resolution, int centreX, int centreY, float obse
 	program_options.targetHeight = targetHeight;
 	program_options.inputFileName = inputFile;
 	program_options.outputFileName = outputFile;
+	program_options.projection = projection;
 		
 	//call viewshed
 	viewshed();
@@ -915,7 +921,7 @@ void doViewshed(int radius, int resolution, int centreX, int centreY, float obse
  * Utility method for the Python Bindings
  * JJH:
  */
-int doLoS(int resolution, int observerX, int observerY, int targetX, int targetY, float observerHeight, float targetHeight, char *  inputFile){
+int doLoS(int resolution, int observerX, int observerY, int targetX, int targetY, float observerHeight, float targetHeight, char *  inputFile, char * projection){
 	
 	//populate options
 	program_options.areUsingPointToPoint = true;
@@ -927,6 +933,7 @@ int doLoS(int resolution, int observerX, int observerY, int targetX, int targetY
 	program_options.observerHeight = observerHeight;
 	program_options.targetHeight = targetHeight;
 	program_options.inputFileName = inputFile;
+	program_options.projection = projection;
 	
 	//call line of sight
 	int los = lineOfSight();
@@ -964,12 +971,13 @@ int main(int argc, char **argv) {
 			{ "pointtopointay",  required_argument, 0, 'k' },
 			{ "pointtopointbx",  required_argument, 0, 'l' },
 			{ "pointtopointby",  required_argument, 0, 'm' },
+			{ "projection", required_argument, 0, 'e' },
 			{ 0, 0, 0, 0 }
 		};
 
 		//getopt_long stores the option index here.
 		int option_index = 0;
-		int c = getopt_long(argc, argv, "r:z:x:y:o:t:i:f:hqpj:k:l:m:",
+		int c = getopt_long(argc, argv, "r:z:x:y:o:t:i:f:hqpj:k:l:m:e:",
 			long_options, &option_index);
 
 		// Detect the end of the options.
@@ -1035,6 +1043,9 @@ int main(int argc, char **argv) {
 				break;
 			case 'm':
 				program_options.by = atoi(optarg);
+				break;
+			case 'e':
+				program_options.projection = optarg;
 				break;
 			case '?':
 				printf("Sorry, I cant understand one or more of your options.\n");
