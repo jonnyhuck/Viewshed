@@ -37,6 +37,8 @@
 //fast math for pi
 #define PI 3.14159265358979323846
 #define TWOPI 6.2831853072
+#define EARTH_DIAMETER 12740000
+#define REFRACTION_COEFFICIENT 0.13
 
 
 //#################
@@ -57,6 +59,9 @@ typedef struct options {
 	char * outputFileName;   //what filename should we read?
 	float observerHeight;
 	float targetHeight;
+	
+	float earthD;		//earth diameter
+	float refractionC;	//refraction coefficient
 
 	// coords for line of sight analysis
 	int ax;
@@ -137,6 +142,9 @@ void printOptions(Options* op);
 
 //convert x and y to a position in 1D array
 int lineate(int x, int y, int width);
+
+//adjust height to account for atmospheric refraction and earth curvature
+double adjustHeight(int height, double distance, double earthD, double refractionC);
 
 //same as above, but all parameters are in meters
 void doSingleRTMeters(OutputData* data, float* inputData, int x1met, int y1met, int x2met, int y2met);

@@ -21,6 +21,7 @@ Options program_options;
  * TODO: should we lose this in favour of making all options required?
  */
 void setupDefaultOptions(Options* op) {
+
 	op->quiet = false;
 	op->radius = 10000;
 	op->resolution = 50;
@@ -31,6 +32,9 @@ void setupDefaultOptions(Options* op) {
 
 	op->observerHeight = 50;
 	op->targetHeight = 1.5;
+	
+	op->earthD = EARTH_DIAMETER;
+	op->refractionC = REFRACTION_COEFFICIENT;
 
 	op->ax = 0;
 	op->ay = 0;
@@ -70,6 +74,8 @@ void printOptions(Options* op) {
 	printf("Bx: %i\n", op->bx);
 	printf("By: %i\n", op->by);
 	printf("Projection: %s\n", op->projection);
+	printf("Earth Diameter: %s\n", op->earthD);
+	printf("Atmospheric Refraction Coefficient: %s\n", op->refractionC);
 
 }
 
@@ -197,14 +203,12 @@ double getBliniearHeight(OutputData* out, float* inputData, int xmet, int ymet) 
 			jty = pixelCentreY;
 			jby = pixelCentreY - out->resolution;
 
-		}
-		else if (ycomp > 0.5) {
+		} else if (ycomp > 0.5) {
 			//top
 			jty = pixelCentreY + out->resolution;
 			jby = pixelCentreY;
 
-		}
-		else {
+		} else {
 			//centre
 			jty = pixelCentreY;
 			jby = pixelCentreY;
@@ -222,21 +226,18 @@ double getBliniearHeight(OutputData* out, float* inputData, int xmet, int ymet) 
 			jty = pixelCentreY;
 			jby = pixelCentreY - out->resolution;
 
-		}
-		else if (ycomp > 0.5) {
+		} else if (ycomp > 0.5) {
 			//top
 			jty = pixelCentreY + out->resolution;
 			jby = pixelCentreY;
 
-		}
-		else {  //centre
+		} else {  //centre
 				//right centre
 			jty = pixelCentreY;
 			jby = pixelCentreY;
 		}
 
-	}
-	else {
+	} else {
 
 		//centre
 		jrx = pixelCentreX;
@@ -247,14 +248,12 @@ double getBliniearHeight(OutputData* out, float* inputData, int xmet, int ymet) 
 			jty = pixelCentreY;
 			jby = pixelCentreY - out->resolution;
 
-		}
-		else if (ycomp > 0.5) {     //top
+		} else if (ycomp > 0.5) {     //top
 									// centre top
 			jty = pixelCentreY + out->resolution;
 			jby = pixelCentreY;
 
-		}
-		else {
+		} else {
 			//perfect centre, no need to interpolate
 			return getHeightAtMeters(out, inputData, xmet, ymet); //heres your problem!!
 
@@ -262,8 +261,7 @@ double getBliniearHeight(OutputData* out, float* inputData, int xmet, int ymet) 
 	}
 	//TODO: Here really should be checking if any are equal to - dbl_max as it will for sure screw up our calculations..
 	//get the interpolated value and return
-	double height2 = bliniearInterp(xmet, ymet, getHeightAtMeters(out, inputData, jrx, jby), getHeightAtMeters(out, inputData, jlx, jby), getHeightAtMeters(out, inputData, jlx, jty), getHeightAtMeters(out, inputData, jrx, jty), jrx, jlx, jty, jby);
-	return height2;
+	return bliniearInterp(xmet, ymet, getHeightAtMeters(out, inputData, jrx, jby), getHeightAtMeters(out, inputData, jlx, jby), getHeightAtMeters(out, inputData, jlx, jty), getHeightAtMeters(out, inputData, jrx, jty), jrx, jlx, jty, jby);
 }
 
 
@@ -299,10 +297,16 @@ int lineate(int x, int y, int width) {
 	return (y*width) + x; ;
 }
 
+/**
+ * Adjust a height to account for Earth's Curvature and Atmospheric Refraction
+ * JJH:
+ */
+double adjustHeight(double height, double distance, double earthD, double refractionC) {
+	return height - ((distance*distance) / earthD) + refractionC * ((distance*distance) / earthD);
+}
 
 /**
  * Runs a single ray-trace from one point to another point, return whether the end point is visible
- * TODO: Consoloidate with the above
  */
 int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, int x2, int y2) {
 
@@ -376,13 +380,17 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
 		numpixels = deltay;   // There are more y-values than x-values
 	}
 
-	for (curpixel = 0; curpixel <= numpixels; curpixel += data->resolution)
-	{
+	
+	//TODO: IMPLEMENT adjustHeight()
 
+
+	for (curpixel = 0; curpixel <= numpixels; curpixel += data->resolution){
+		
+		//pixel location for end point
 		int x1pixel = coordinateToPixelX(data, (long)x);
 		int y1pixel = coordinateToPixelY(data, (long)y);
-	
-
+		
+		//distance travelled so far
 		distanceTravelled = distance(x1, y1, x, y);
 
 		//if we are on the first pixel (center of the circle)
@@ -391,48 +399,55 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
 			initialHeight = getBliniearHeight(data, inputData, x, y) + program_options.observerHeight; //set the initial height
 			visible = 1;  //we of course can see ourselves
 
-
-						  //we are on the second pixel
-		}
-		else if (count == 1) {
-
-			biggestDYDXSoFar = (getBliniearHeight(data, inputData, x, y) - initialHeight) / distanceTravelled; //first angle we have come accross, so clearly the biggest.
+		//we are on the second pixel
+		} else if (count == 1) {
+			
+			//first step definitely visible, just record the DY/DX and move on
+			biggestDYDXSoFar = (adjustHeight(getBliniearHeight(data, inputData, x, y), distanceTravelled, EARTH_DIAMETER, REFRACTION_COEFFICIENT) - initialHeight) / distanceTravelled;
 			visible = 1; //again, obviously visible
 
-						 //we are on any of the others
-		}
-		else {
+		//we are past the second pixel
+		} else {
+			
+			//the height of the top of the object in the landscape
+			tempHeight = (adjustHeight(getBliniearHeight(data, inputData, x, y), distanceTravelled, EARTH_DIAMETER, REFRACTION_COEFFICIENT) - initialHeight + program_options.targetHeight) / distanceTravelled;
 
-			tempHeight = (getBliniearHeight(data, inputData, x, y) - initialHeight + program_options.targetHeight) / distanceTravelled;   //height of cell with offset
+			//the height of the base of the object in the landscape
+			currentDYDX = (adjustHeight(getBliniearHeight(data, inputData, x, y), distanceTravelled, EARTH_DIAMETER, REFRACTION_COEFFICIENT) - initialHeight) / distanceTravelled;
 
-			currentDYDX = (getBliniearHeight(data, inputData, x, y) - initialHeight) / distanceTravelled;  //height of cell without offset
-
-			if ((tempHeight - biggestDYDXSoFar) >= 0) {   //is the angle bigger than we have seen?
+			//is the angle bigger than we have seen?
+			if ((tempHeight - biggestDYDXSoFar) >= 0) {
 				visible = 1;
-			}
-			else {
+			} else {
 				visible = 0;
 			}
 
-			if (currentDYDX >= biggestDYDXSoFar) {  //if this angle is greater than the biggest we have seen before, remember it.
-				biggestDYDXSoFar = currentDYDX;  //note we are recording the height without the offset. Otherwise we would be raising the whole terrain by this amount rather than just this cell.
-												 // that is it would affect all cells after this one.
+			//if this angle is greater than the biggest we have seen before, remember it.
+			if (currentDYDX >= biggestDYDXSoFar) {
+				biggestDYDXSoFar = currentDYDX;  //note we are recording the height without the offset. Otherwise we would be raising the whole terrain by this amount rather than just this cell, that is it would affect all cells after this one.
 			}
 		}
-
-		//increment the iterators
+		
+		//increment outselves along the line
 		count++; 
-		num += numadd;        // Increase the numerator by the top of the fraction
-		if (num >= den)     // Check if numerator >= denominator
-		{
-			num -= den;       // Calculate the new numerator value
-			x += xinc1;       // Change the x as appropriate
-			y += yinc1;       // Change the y as appropriate
+		
+		// printf ("Current blin height %.6f \n", getBliniearHeight(data, inputData, x ,y) - initialHeight);
+		// printf("Biggest: %.6f, Current %.6f \n", biggestDYDXSoFar, currentDYDX);
+		if (visible == 1) { //if we are visible, mark it in the output data.
+			data->data[lineate(x1pixel, y1pixel, data->pixelWidth)] = 1;//
 		}
-		x += xinc2;       // Change the x as appropriate
-		y += yinc2;       // Change the y as appropriate
-	}
 
+		//update iterators
+		num += numadd;      // Increase the numerator by the top of the fraction
+		if (num >= den){     // Check if numerator >= denominator
+			num -= den;     // Calculate the new numerator value
+			x += xinc1;     // Change the x as appropriate
+			y += yinc1;     // Change the y as appropriate
+		}
+		x += xinc2;       	// Change the x as appropriate
+		y += yinc2;       	// Change the y as appropriate
+	}
+	
 	return visible;
 }
 
@@ -442,84 +457,76 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
  * TODO: Consoloidate with the above
  */
 void doSingleRTMeters(OutputData* data, float* inputData, int x1, int y1, int x2, int y2) {
+
 	//printf("DATA %d %d %d %d \n",x1,y1,x2,y2);
 	int deltax = abs(x2 - x1);
 	int deltay = abs(y2 - y1);
-
-
-	int count = 0; //this is how many pixels we are in to our ray.
-	float initialHeight = 0;  //getHeightAt(fx,fy);
-	float biggestDYDXSoFar = 0; //biggest peak so far
-	float currentDYDX = 0; //current peak
-	char visible = 0;   //used a char here, bool doesnt exist!
-	float tempHeight = 0; //temp height used for offset comparisons.
+	int count = 0; 					//this is how many pixels we are in to our ray.
+	float initialHeight = 0;  		//getHeightAt(fx,fy);
+	float biggestDYDXSoFar = 0; 	//biggest peak so far
+	float currentDYDX = 0; 			//current peak
+	char visible = 0;   			//used a char here, bool doesnt exist!
+	float tempHeight = 0; 			//temp height used for offset comparisons.
 	float distanceTravelled = 0;
 
+	//verify coordinates of start point are within data bounds
 	if (x1 < data->minx || x1 > data->maxx || y1 < data->miny || y1 > data->maxy) {
 		printf("Illegal Coordinate1:%d,%d\n", x1, y1);
 		printOutput(data);
 	}
+	
+	//verify coordinates of end point are within data bounds
 	if (x2 < data->minx || x2 > data->maxx || y2 < data->miny || y2 > data->maxy) {
 		printf("Illegal Coordinate2:%d,%d\n", x2, y2);
 		printOutput(data);
 	}
 
-	int x = x1;           // Start x off at the first pixel
-	int y = y1;           // Start y off at the first pixel
-	int xinc1;
-	int xinc2;
-	int yinc1;
-	int yinc2;
-	int curpixel;
-	int den, num, numadd, numpixels;
+	//set up variables
+	int x = x1;         // Start x off at the first pixel
+	int y = y1;         // Start y off at the first pixel
+	int xinc1, xinc2, yinc1, yinc2, curpixel, den, num, numadd, numpixels;
 
-	if (x2 >= x1)       // The x-values are increasing
-	{
+	if (x2 >= x1) {      // The x-values are increasing
 		xinc1 = data->resolution;
 		xinc2 = data->resolution;
-	}
-	else              // The x-values are decreasing
-	{
+	} else {              // The x-values are decreasing
 		xinc1 = -data->resolution;
 		xinc2 = -data->resolution;
 	}
 
-	if (y2 >= y1)       // The y-values are increasing
-	{
+	if (y2 >= y1){       // The y-values are increasing
 		yinc1 = data->resolution;
 		yinc2 = data->resolution;
 	}
-	else              // The y-values are decreasing
-	{
+	else{             // The y-values are decreasing
 		yinc1 = -data->resolution;
 		yinc2 = -data->resolution;
 	}
 
-	if (deltax >= deltay)   // There is at least one x-value for every y-value
-	{
+	if (deltax >= deltay){   // There is at least one x-value for every y-value
 		xinc1 = 0;          // Don't change the x when numerator >= denominator
 		yinc2 = 0;          // Don't change the y for every iteration
 		den = deltax;
 		num = deltax / 2;
 		numadd = deltay;
-		numpixels = deltax;   // There are more x-values than y-values
+		numpixels = deltax; // There are more x-values than y-values
 	}
-	else              // There is at least one y-value for every x-value
-	{
+	else {             		// There is at least one y-value for every x-value
 		xinc2 = 0;          // Don't change the x for every iteration
 		yinc1 = 0;          // Don't change the y when numerator >= denominator
 		den = deltay;
 		num = deltay / 2;
 		numadd = deltax;
-		numpixels = deltay;   // There are more y-values than x-values
+		numpixels = deltay; // There are more y-values than x-values
 	}
 
-	for (curpixel = 0; curpixel <= numpixels; curpixel += data->resolution)
-	{
-
+	for (curpixel = 0; curpixel <= numpixels; curpixel += data->resolution){
+		
+		//pixel location for end point
 		int x1pixel = coordinateToPixelX(data, (long)x);
 		int y1pixel = coordinateToPixelY(data, (long)y);
 		
+		//distance travelled so far
 		distanceTravelled = distance(x1, y1, x, y);
 
 		//if we are on the first pixel (center of the circle)
@@ -528,52 +535,53 @@ void doSingleRTMeters(OutputData* data, float* inputData, int x1, int y1, int x2
 			initialHeight = getBliniearHeight(data, inputData, x, y) + program_options.observerHeight; //set the initial height
 			visible = 1;  //we of course can see ourselves
 
-
-						  //we are on the second pixel
-		}
-		else if (count == 1) {
-
-			biggestDYDXSoFar = (getBliniearHeight(data, inputData, x, y) - initialHeight) / distanceTravelled; //first angle we have come accross, so clearly the biggest.
+		//we are on the second pixel
+		} else if (count == 1) {
+			
+			//first step definitely visible, just record the DY/DX and move on
+			biggestDYDXSoFar = (adjustHeight(getBliniearHeight(data, inputData, x, y), distanceTravelled, EARTH_DIAMETER, REFRACTION_COEFFICIENT) - initialHeight) / distanceTravelled;
 			visible = 1; //again, obviously visible
 
-						 //we are on any of the others
-		}
-		else {
+		//we are past the second pixel
+		} else {
+			
+			//the height of the top of the object in the landscape
+			tempHeight = (adjustHeight(getBliniearHeight(data, inputData, x, y), distanceTravelled, EARTH_DIAMETER, REFRACTION_COEFFICIENT) - initialHeight + program_options.targetHeight) / distanceTravelled;
 
-			tempHeight = (getBliniearHeight(data, inputData, x, y) - initialHeight + program_options.targetHeight) / distanceTravelled;   //height of cell with offset
+			//the height of the base of the object in the landscape
+			currentDYDX = (adjustHeight(getBliniearHeight(data, inputData, x, y), distanceTravelled, EARTH_DIAMETER, REFRACTION_COEFFICIENT) - initialHeight) / distanceTravelled;
 
-			currentDYDX = (getBliniearHeight(data, inputData, x, y) - initialHeight) / distanceTravelled;  //height of cell without offset
-
-			if ((tempHeight - biggestDYDXSoFar) >= 0) {   //is the angle bigger than we have seen?
+			//is the angle bigger than we have seen?
+			if ((tempHeight - biggestDYDXSoFar) >= 0) {
 				visible = 1;
-			}
-			else {
+			} else {
 				visible = 0;
 			}
 
-			if (currentDYDX >= biggestDYDXSoFar) {  //if this angle is greater than the biggest we have seen before, remember it.
-				biggestDYDXSoFar = currentDYDX;  //note we are recording the height without the offset. Otherwise we would be raising the whole terrain by this amount rather than just this cell.
-												 // that is it would affect all cells after this one.
+			//if this angle is greater than the biggest we have seen before, remember it.
+			if (currentDYDX >= biggestDYDXSoFar) {
+				biggestDYDXSoFar = currentDYDX;  //note we are recording the height without the offset. Otherwise we would be raising the whole terrain by this amount rather than just this cell, that is it would affect all cells after this one.
 			}
 		}
-
-		count++; //increment outselves along the line
-				 // printf ("Current blin height %.6f \n", getBliniearHeight(data, inputData, x ,y) - initialHeight);
-				 // printf("Biggest: %.6f, Current %.6f \n", biggestDYDXSoFar, currentDYDX);
+		
+		//increment outselves along the line
+		count++; 
+		
+		// printf ("Current blin height %.6f \n", getBliniearHeight(data, inputData, x ,y) - initialHeight);
+		// printf("Biggest: %.6f, Current %.6f \n", biggestDYDXSoFar, currentDYDX);
 		if (visible == 1) { //if we are visible, mark it in the output data.
 			data->data[lineate(x1pixel, y1pixel, data->pixelWidth)] = 1;//
 		}
 
 		//update iterators
-		num += numadd;        // Increase the numerator by the top of the fraction
-		if (num >= den)     // Check if numerator >= denominator
-		{
-			num -= den;       // Calculate the new numerator value
-			x += xinc1;       // Change the x as appropriate
-			y += yinc1;       // Change the y as appropriate
+		num += numadd;      // Increase the numerator by the top of the fraction
+		if (num >= den){     // Check if numerator >= denominator
+			num -= den;     // Calculate the new numerator value
+			x += xinc1;     // Change the x as appropriate
+			y += yinc1;     // Change the y as appropriate
 		}
-		x += xinc2;       // Change the x as appropriate
-		y += yinc2;       // Change the y as appropriate
+		x += xinc2;       	// Change the x as appropriate
+		y += yinc2;       	// Change the y as appropriate
 	}
 }
 
@@ -603,24 +611,42 @@ void doRTCalc(OutputData* out, float* inputData) {
 
 	//printf("Start (origins) %d %d %d \n", xOrigin,yOrigin, radius); //this is center not top left... i think.
 
-	//the location of thie start of the raytraces
-	int startX = out->centerx;
-	int startY = out->centery;
+	/* Use Bresenham's Circle / Midpoint algorithm to determine endpoints */
 
-	//the arc distance of the resolution in radians (to increment the rays)
-	double angle = (TWOPI / (TWOPI*out->radius) * out->resolution) / 1.414213562;
+	int x0 = out->centerx;
+	int y0 = out->centery;
 
-	//move around a circle incrementing by the above
-	double d;
-	for (d = 0; d < TWOPI; d += angle) {
+    int x = out->radius - out->resolution;
+    int y = 0;
+    int dx = out->resolution;
+    int dy = out->resolution;
+    int err = dx - (out->radius << 1);
 
-		//work out the end of the ray
-		double endX = pointOffsetX(startX, startY, out->radius, d);
-		double endY = pointOffsetY(startX, startY, out->radius, d);
+    while (x >= y) {
+    	
+    	doSingleRTMeters(out, inputData, x0, y0, x0 + x, y0 + y);
+        doSingleRTMeters(out, inputData, x0, y0, x0 + y, y0 + x);
+      	doSingleRTMeters(out, inputData, x0, y0, x0 - y, y0 + x);
+        doSingleRTMeters(out, inputData, x0, y0, x0 - x, y0 + y);
+        doSingleRTMeters(out, inputData, x0, y0, x0 - x, y0 - y);
+        doSingleRTMeters(out, inputData, x0, y0, x0 - y, y0 - x);
+        doSingleRTMeters(out, inputData, x0, y0, x0 + y, y0 - x);
+        doSingleRTMeters(out, inputData, x0, y0, x0 + x, y0 - y);
+        
+        //TODO: Add in reverse direction as well as an option 
+    
+    	if (err <= 0){
+            y += out->resolution;
+            err += dy;
+            dy += (2 * out->resolution);
+        } else {
+            x -= out->resolution;
+            dx += (2 * out->resolution);
+            err += dx - (out->radius << 1);
+        }
+    
+    }
 
-		//do a ray trace
-		doSingleRTMeters(out, inputData, startX, startY, endX, endY);
-	}
 }
 
 
@@ -644,6 +670,9 @@ void printHelpInfo() {
 	printf("--pointtopointay <value> or -k <value> : set pointtopointmode ax value.\n");
 	printf("--pointtopointbx <value> or -l <value> : set pointtopointmode ax value.\n");
 	printf("--pointtopointby <value> or -m <value> : set pointtopointmode ax value.\n");
+	
+	printf("--earthD <value> or -d <value> : set Earth's diameter.\n");
+	printf("--refractionC <value> or -a <value> : set atmospheric refraction coefficient.\n");
 
 	printf("--inputfile <value> or -i <value> : input file name (geotiff).\n");
 	printf("--outputfile <value> or -f <value> : output file name (geotiff).\n");
@@ -667,12 +696,13 @@ void viewshed() {
 
 	//if data has come in
 	if (hDataset != NULL) {
+	
 		//init some variables
 		GDALRasterBandH hBand;
-		int             nBlockXSize, nBlockYSize;
-		int             bGotMin, bGotMax;
-		double          adfMinMax[2];
-		float   *pafScanline;
+		int nBlockXSize, nBlockYSize;
+		int bGotMin, bGotMax;
+		double adfMinMax[2];
+		float *pafScanline;
 
 		//get the band from the raster (there will only be one)
 		hBand = GDALGetRasterBand(hDataset, 1);
@@ -894,6 +924,7 @@ int lineOfSight() {
 	return -1;
 }
 
+
 /**
  * This is a method to programatically call the viewshed
  * Utility method for the Python Bindings
@@ -915,6 +946,7 @@ void doViewshed(int radius, int resolution, int centreX, int centreY, float obse
 	//call viewshed
 	viewshed();
 }
+
 
 /**
  * This is a method to programatically call the line of sight analysis
@@ -939,6 +971,7 @@ int doLoS(int resolution, int observerX, int observerY, int targetX, int targetY
 	int los = lineOfSight();
 	return los;
 }
+
 
 /**
  * Main method - process arguments, populate structs and start necessary calculations
@@ -972,6 +1005,8 @@ int main(int argc, char **argv) {
 			{ "pointtopointbx",  required_argument, 0, 'l' },
 			{ "pointtopointby",  required_argument, 0, 'm' },
 			{ "projection", required_argument, 0, 'e' },
+			{ "earthD", required_argument, 0, 'd' },
+			{ "refractionC", required_argument, 0, 'a' },
 			{ 0, 0, 0, 0 }
 		};
 
@@ -1046,6 +1081,12 @@ int main(int argc, char **argv) {
 				break;
 			case 'e':
 				program_options.projection = optarg;
+				break;
+			case 'd':
+				program_options.earthD = atof(optarg);
+				break;
+			case 'a':
+				program_options.refractionC = atof(optarg);
 				break;
 			case '?':
 				printf("Sorry, I cant understand one or more of your options.\n");
