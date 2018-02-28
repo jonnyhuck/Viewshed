@@ -70,10 +70,3 @@ To rebuild the Python Bindings (requires [SWIG](http://swig.org/)):
 ```
 swig -python -c++ viewshed.i ; python setup.py build_ext --inplace
 ```
----
-### TODO:
-* Add in Earth curvature and atmospheric refraction.
-* Tidy up code!
-* Add in option to output Line of Sight Lines in GeoTiff
-* Support other map projections
-* Add in more precise / slower trigonometric alternative to Bresenhams line algorithm
