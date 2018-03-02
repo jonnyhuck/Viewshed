@@ -587,24 +587,6 @@ void doSingleRTMeters(OutputData* data, float* inputData, int x1, int y1, int x2
 
 
 /**
- * Offset a X coordinate by a given distance and direction
- */
-double pointOffsetX(double x, double  y, double distance, double azimuth) {
-	//simple geometric offset in each dimension
-	return x + (sin((azimuth)) * distance);
-}
-
-
-/**
- * Offset a Y coordinate by a given distance and direction
- */
-double pointOffsetY(double  x, double  y, double distance, double azimuth) {
-	//simple geometric offset in each dimensions
-	return y + (cos((azimuth)) * distance);
-}
-
-
-/**
  * Do a bunch of (360 deg) RTs from pixel to radius.
  */
 void doRTCalc(OutputData* out, float* inputData) {
