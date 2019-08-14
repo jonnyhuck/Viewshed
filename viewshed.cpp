@@ -32,7 +32,7 @@ void setupDefaultOptions(Options* op) {
 
 	op->observerHeight = 50;
 	op->targetHeight = 1.5;
-	
+
 	op->earthD = EARTH_DIAMETER;
 	op->refractionC = REFRACTION_COEFFICIENT;
 
@@ -42,7 +42,7 @@ void setupDefaultOptions(Options* op) {
 	op->by = 0;
 
 	op->areUsingPointToPoint = false;
-	
+
 	//defaults to OSGB, needs to be something...
 	op->projection = (char *) "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +units=m +no_defs";
 }
@@ -85,7 +85,7 @@ void printOptions(Options* op) {
 void printOutput(OutputData* out) {
 
 	printf("Youre output data is as follows:\n");
-	
+
 	//everything here is stored in metres
 	printf("minx: %i\n", out->minx);
 	printf("miny: %i\n", out->miny);
@@ -146,7 +146,7 @@ double bliniearInterp(int x, int y, double br, double bl, double tl, double tr, 
  * Return the value at a given pixel location
  */
 double getHeightAt(OutputData* out, float* inputData, int pixelX, int pixelY) {
-	
+
 	//verify that the supplied pixel coordinates are appropriate
 	if (pixelX < out->pixelMinx || pixelX > out->pixelMaxx || pixelY < out->pixelMiny || pixelY > out->pixelMaxy) {
 		//printf("Out of bounds here!! %d %d %d %d %d %d %d  \n", pixelX,pixelY,out->pixelWidth, out->minx, out->maxx, out->miny, out->maxy);
@@ -380,16 +380,16 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
 		numpixels = deltay;   // There are more y-values than x-values
 	}
 
-	
+
 	//TODO: IMPLEMENT adjustHeight()
 
 
 	for (curpixel = 0; curpixel <= numpixels; curpixel += data->resolution){
-		
+
 		//pixel location for end point
 		int x1pixel = coordinateToPixelX(data, (long)x);
 		int y1pixel = coordinateToPixelY(data, (long)y);
-		
+
 		//distance travelled so far
 		distanceTravelled = distance(x1, y1, x, y);
 
@@ -401,14 +401,14 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
 
 		//we are on the second pixel
 		} else if (count == 1) {
-			
+
 			//first step definitely visible, just record the DY/DX and move on
 			biggestDYDXSoFar = (adjustHeight(getBliniearHeight(data, inputData, x, y), distanceTravelled, EARTH_DIAMETER, REFRACTION_COEFFICIENT) - initialHeight) / distanceTravelled;
 			visible = 1; //again, obviously visible
 
 		//we are past the second pixel
 		} else {
-			
+
 			//the height of the top of the object in the landscape
 			tempHeight = (adjustHeight(getBliniearHeight(data, inputData, x, y), distanceTravelled, EARTH_DIAMETER, REFRACTION_COEFFICIENT) - initialHeight + program_options.targetHeight) / distanceTravelled;
 
@@ -427,10 +427,10 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
 				biggestDYDXSoFar = currentDYDX;  //note we are recording the height without the offset. Otherwise we would be raising the whole terrain by this amount rather than just this cell, that is it would affect all cells after this one.
 			}
 		}
-		
+
 		//increment outselves along the line
-		count++; 
-		
+		count++;
+
 		// printf ("Current blin height %.6f \n", getBliniearHeight(data, inputData, x ,y) - initialHeight);
 		// printf("Biggest: %.6f, Current %.6f \n", biggestDYDXSoFar, currentDYDX);
 		if (visible == 1) { //if we are visible, mark it in the output data.
@@ -447,7 +447,7 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
 		x += xinc2;       	// Change the x as appropriate
 		y += yinc2;       	// Change the y as appropriate
 	}
-	
+
 	return visible;
 }
 
@@ -474,7 +474,7 @@ void doSingleRTMeters(OutputData* data, float* inputData, int x1, int y1, int x2
 		printf("Illegal Coordinate1:%d,%d\n", x1, y1);
 		printOutput(data);
 	}
-	
+
 	//verify coordinates of end point are within data bounds
 	if (x2 < data->minx || x2 > data->maxx || y2 < data->miny || y2 > data->maxy) {
 		printf("Illegal Coordinate2:%d,%d\n", x2, y2);
@@ -521,11 +521,11 @@ void doSingleRTMeters(OutputData* data, float* inputData, int x1, int y1, int x2
 	}
 
 	for (curpixel = 0; curpixel <= numpixels; curpixel += data->resolution){
-		
+
 		//pixel location for end point
 		int x1pixel = coordinateToPixelX(data, (long)x);
 		int y1pixel = coordinateToPixelY(data, (long)y);
-		
+
 		//distance travelled so far
 		distanceTravelled = distance(x1, y1, x, y);
 
@@ -537,14 +537,14 @@ void doSingleRTMeters(OutputData* data, float* inputData, int x1, int y1, int x2
 
 		//we are on the second pixel
 		} else if (count == 1) {
-			
+
 			//first step definitely visible, just record the DY/DX and move on
 			biggestDYDXSoFar = (adjustHeight(getBliniearHeight(data, inputData, x, y), distanceTravelled, EARTH_DIAMETER, REFRACTION_COEFFICIENT) - initialHeight) / distanceTravelled;
 			visible = 1; //again, obviously visible
 
 		//we are past the second pixel
 		} else {
-			
+
 			//the height of the top of the object in the landscape
 			tempHeight = (adjustHeight(getBliniearHeight(data, inputData, x, y), distanceTravelled, EARTH_DIAMETER, REFRACTION_COEFFICIENT) - initialHeight + program_options.targetHeight) / distanceTravelled;
 
@@ -563,10 +563,10 @@ void doSingleRTMeters(OutputData* data, float* inputData, int x1, int y1, int x2
 				biggestDYDXSoFar = currentDYDX;  //note we are recording the height without the offset. Otherwise we would be raising the whole terrain by this amount rather than just this cell, that is it would affect all cells after this one.
 			}
 		}
-		
+
 		//increment outselves along the line
-		count++; 
-		
+		count++;
+
 		// printf ("Current blin height %.6f \n", getBliniearHeight(data, inputData, x ,y) - initialHeight);
 		// printf("Biggest: %.6f, Current %.6f \n", biggestDYDXSoFar, currentDYDX);
 		if (visible == 1) { //if we are visible, mark it in the output data.
@@ -605,7 +605,7 @@ void doRTCalc(OutputData* out, float* inputData) {
     int err = dx - (out->radius << 1);
 
     while (x >= y) {
-    	
+
     	doSingleRTMeters(out, inputData, x0, y0, x0 + x, y0 + y);
         doSingleRTMeters(out, inputData, x0, y0, x0 + y, y0 + x);
       	doSingleRTMeters(out, inputData, x0, y0, x0 - y, y0 + x);
@@ -614,9 +614,9 @@ void doRTCalc(OutputData* out, float* inputData) {
         doSingleRTMeters(out, inputData, x0, y0, x0 - y, y0 - x);
         doSingleRTMeters(out, inputData, x0, y0, x0 + y, y0 - x);
         doSingleRTMeters(out, inputData, x0, y0, x0 + x, y0 - y);
-        
-        //TODO: Add in reverse direction as well as an option 
-    
+
+        //TODO: Add in reverse direction as well as an option
+
     	if (err <= 0){
             y += out->resolution;
             err += dy;
@@ -626,7 +626,7 @@ void doRTCalc(OutputData* out, float* inputData) {
             dx += (2 * out->resolution);
             err += dx - (out->radius << 1);
         }
-    
+
     }
 
 }
@@ -652,7 +652,7 @@ void printHelpInfo() {
 	printf("--pointtopointay <value> or -k <value> : set pointtopointmode ax value.\n");
 	printf("--pointtopointbx <value> or -l <value> : set pointtopointmode ax value.\n");
 	printf("--pointtopointby <value> or -m <value> : set pointtopointmode ax value.\n");
-	
+
 	printf("--earthD <value> or -d <value> : set Earth's diameter.\n");
 	printf("--refractionC <value> or -a <value> : set atmospheric refraction coefficient.\n");
 
@@ -678,7 +678,7 @@ void viewshed() {
 
 	//if data has come in
 	if (hDataset != NULL) {
-	
+
 		//init some variables
 		GDALRasterBandH hBand;
 		int nBlockXSize, nBlockYSize;
@@ -703,9 +703,9 @@ void viewshed() {
 		//get the transforminfo
 		double  adfGeoTransform[6];
 		if (GDALGetGeoTransform(hDataset, adfGeoTransform) == CE_None) {
-				
+
 			//TODO: should we take come action here...?
-		
+
 			//    if (!program_options.quiet) printf( "Origin = (%.6f,%.6f)\n",
 			//  adfGeoTransform[0], adfGeoTransform[3] );
 			//    if (!program_options.quiet)  printf( "Pixel Size = (%.6f,%.6f)\n",
@@ -726,7 +726,7 @@ void viewshed() {
 		output.centery = program_options.centerY;
 		output.width = output.maxx - output.minx;
 		output.height = output.maxy - output.miny;
-	
+
 		//get input values in pixels
 		output.pixelWidth = (output.width) / program_options.resolution;		//(width in pixels) TODO: better terminology!
 		output.pixelHeight = (output.height) / program_options.resolution;		//(heightin pixels) TODO: better terminology!
@@ -745,7 +745,7 @@ void viewshed() {
 		//offset the point to that location (5.497787144 = 315 degrees in radians) whilst converting to pixels
 		float offsetX = (program_options.centerX + (sin(5.497787144) * distance) - topLeftXinputData) / program_options.resolution;
 		float offsetY = -(program_options.centerY + (cos(5.497787144) * distance) - topLeftYinputData) / program_options.resolution;
-	
+
 		//reserve some memory for the section of data that we are interested in
 		pafScanline = (float *)CPLMalloc(sizeof(float)*(output.pixelWidth)*(output.pixelHeight));
 
@@ -769,7 +769,8 @@ void viewshed() {
 		}
 
 		//set the transform params for the output file
-		double adfGeoTransformO[6] = { output.minx, program_options.resolution, 0,  output.maxy, 0, -program_options.resolution };
+		// double adfGeoTransformO[6] = { output.minx, program_options.resolution, 0,  output.maxy, 0, -program_options.resolution };
+		double adfGeoTransformO[6] = { static_cast<double>(output.minx), static_cast<double>(program_options.resolution), 0, static_cast<double>( output.maxy), 0, static_cast<double>(-program_options.resolution) };
 		GDALSetGeoTransform(hDstDS, adfGeoTransformO);
 
 		//set projection
@@ -813,7 +814,7 @@ void viewshed() {
  * JJH:
  */
 int lineOfSight() {
-	
+
 	//register all data drivers
 	GDALAllRegister();
 
@@ -850,9 +851,9 @@ int lineOfSight() {
 		//get the transforminfo
 		double  adfGeoTransform[6];
 		if (GDALGetGeoTransform(hDataset, adfGeoTransform) == CE_None) {
-		
+
 			//TODO: should we take come action here...?
-		
+
 			//    if (!program_options.quiet) printf( "Origin = (%.6f,%.6f)\n",
 			//  adfGeoTransform[0], adfGeoTransform[3] );
 			//    if (!program_options.quiet)  printf( "Pixel Size = (%.6f,%.6f)\n",
@@ -867,7 +868,7 @@ int lineOfSight() {
 		output.maxx = adfGeoTransform[0] + (nXSize * output.resolution);
 		output.miny = adfGeoTransform[3] - (nYSize * output.resolution);
 		output.maxy = adfGeoTransform[3];
-	
+
 		//get input values in pixels
 		output.pixelWidth = nXSize;		//(width in pixels) TODO: better terminology!
 		output.pixelHeight = nYSize;	//(height in pixels) TODO: better terminology!
@@ -886,7 +887,7 @@ int lineOfSight() {
 
 		//do LoS analysis...
 		int completelyVisible1 = doSingleRTPointToPoint(pafScanline, &output, program_options.ax, program_options.ay, program_options.bx, program_options.by);
-	
+
 		//JJH: ...then do it again in the opposite direction - this is to remove false negatives in comparison with the viewshed (different Bresenham lines give different results)
 		//TODO: Should this be optional?
 		int completelyVisible2 = doSingleRTPointToPoint(pafScanline, &output, program_options.bx, program_options.by, program_options.ax, program_options.ay);
@@ -897,7 +898,7 @@ int lineOfSight() {
 		//combine the results and return
 		int completelyVisible = (completelyVisible1 + completelyVisible2) > 0 ? 1 : 0;
 		return completelyVisible;
-	
+
 		//TODO: Add in the option to have the output (line) file
 
 	} else {  //(if no data was loaded)
@@ -913,7 +914,7 @@ int lineOfSight() {
  * JJH:
  */
 void doViewshed(int radius, int resolution, int centreX, int centreY, float observerHeight, float targetHeight, char *  inputFile,  char * outputFile, char * projection){
-	
+
 	//populate options
 	program_options.radius = radius;
 	program_options.resolution = resolution;
@@ -924,7 +925,7 @@ void doViewshed(int radius, int resolution, int centreX, int centreY, float obse
 	program_options.inputFileName = inputFile;
 	program_options.outputFileName = outputFile;
 	program_options.projection = projection;
-		
+
 	//call viewshed
 	viewshed();
 }
@@ -936,7 +937,7 @@ void doViewshed(int radius, int resolution, int centreX, int centreY, float obse
  * JJH:
  */
 int doLoS(int resolution, int observerX, int observerY, int targetX, int targetY, float observerHeight, float targetHeight, char *  inputFile, char * projection){
-	
+
 	//populate options
 	program_options.areUsingPointToPoint = true;
 	program_options.resolution = resolution;
@@ -948,7 +949,7 @@ int doLoS(int resolution, int observerX, int observerY, int targetX, int targetY
 	program_options.targetHeight = targetHeight;
 	program_options.inputFileName = inputFile;
 	program_options.projection = projection;
-	
+
 	//call line of sight
 	int los = lineOfSight();
 	return los;
@@ -968,7 +969,7 @@ int main(int argc, char **argv) {
 	setupDefaultOptions(&program_options);
 
 	while (1) {
-	
+
 		struct option long_options[] =
 		{
 			/* These options set a flag. */
@@ -1085,18 +1086,18 @@ int main(int argc, char **argv) {
 		printf("No input data specified!. Cowardly aborting..\n");
 		exit(1);
 	}
-	
+
 	/* Now we have the data, do the analysis */
 
 	//are we using line of sight or viewshed?
 	if (program_options.areUsingPointToPoint == true) { 	//LoS
-	
+
 		//run the Line of Sight and print out the result
 		int vis = lineOfSight();
 		printf("%i\n", vis);
-		
+
 	} else {												//viewshed
-	
+
 		//run the viewshed, writing the result to file
 		viewshed();
 	}

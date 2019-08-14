@@ -16,11 +16,11 @@
 	#include "ogr_srs_api.h"
 #else
 	#include <getopt.h>
-	#include "gdal/gdal.h"
-	#include "gdal/cpl_conv.h"
-	#include "gdal/cpl_string.h"
-	#include "gdal/ogr_core.h"
-	#include "gdal/ogr_srs_api.h"
+	#include "gdal.h"
+	#include "cpl_conv.h"
+	#include "cpl_string.h"
+	#include "ogr_core.h"
+	#include "ogr_srs_api.h"
 #endif
 
 
@@ -59,7 +59,7 @@ typedef struct options {
 	char * outputFileName;   //what filename should we read?
 	float observerHeight;
 	float targetHeight;
-	
+
 	float earthD;		//earth diameter
 	float refractionC;	//refraction coefficient
 
@@ -71,15 +71,15 @@ typedef struct options {
 
 	//does the user want LoS or Viewshed?
 	int areUsingPointToPoint;
-	
+
 	//proj4 string (for projection)
 	char * projection;
-	
+
 } Options;
 
 
 /*
- * output data, including variables. This section defines the square that wraps our output data (e.g center +/- radius), 
+ * output data, including variables. This section defines the square that wraps our output data (e.g center +/- radius),
  * not the data as supplied to gdal. if in point 2 point mode, some options are ignored.
  */
 typedef struct output_data {
@@ -106,9 +106,9 @@ typedef struct output_data {
 	int pixelRadius;
 	int pixelCenterx;
 	int pixelCentery;
-	
-	//this is the actual output data that we will be drawing to.	
-	GByte* data; 
+
+	//this is the actual output data that we will be drawing to.
+	GByte* data;
 
 } OutputData;
 
@@ -125,7 +125,7 @@ typedef struct input_data {
 	int miny;
 	int maxx;
 	int maxy;
-	
+
 } InputData;
 
 

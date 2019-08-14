@@ -37,7 +37,7 @@ Would run a viewshed of 20km around the point 345678,456789 assuming a 1.5m tall
 
 #### Python Usage
 
-```
+```python
 import viewshed
 
 #calculate a viewshed
@@ -56,17 +56,20 @@ viewshed.doLoS(resolution, observerX, observerY, targetX, targetY, observerHeigh
 #### Building:
 To compile the command line program:
 
-##### Mac:
-```
- gcc viewshed.cpp -framework GDAL -o viewshed -O3
-```
 ##### Linux:
-```
+
+```bash
 gcc viewshed.cpp -lgdal -lm -o viewshed -O3
 ```
 
+##### Mac:
+```bash
+g++ -std=c++11 -stdlib=libc++ viewshed.cpp -F/Library/Frameworks/ -framework GDAL -o viewshed -O3
+```
 To rebuild the Python Bindings (requires [SWIG](http://swig.org/)):
 
-```
-swig -python -c++ viewshed.i ; python setup.py build_ext --inplace
+```bash
+swig -python -c++ viewshed.i; python setup.py build_ext --inplace
+
+CFLAGS=-stdlib=libstdc++ 
 ```
