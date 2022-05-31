@@ -1,5 +1,4 @@
 /* File: viewshed.cpp */
-
 #include "viewshed.h"
 
 
@@ -24,6 +23,8 @@ void setupDefaultOptions(Options* op) {
 
 	op->quiet = false;
 	op->radius = 10000;
+
+	//TODO: Why is this not read from the dataset?
 	op->resolution = 50;
 	op->centerX = -1;
 	op->centerY = -1;
@@ -127,18 +128,15 @@ void printOutput(OutputData* out) {
 */
 double bliniearInterp(int x, int y, double br, double bl, double tl, double tr, double xr, double xl, double yt, double yb) {
 	// printf("%f,%f,%f,%f,%f,%f,%f,%f,%f,%f",  x,  y,  br,  bl, tl,  tr,  xr,  xl,  yt,  yb);
+
 	//bottom two x values
 	double R1 = ((xr - x) / (xr - xl)) * bl + ((x - xl) / (xr - xl)) * br;
 
 	//top two x values
 	double R2 = ((xr - x) / (xr - xl)) * tl + ((x - xl) / (xr - xl)) * tr;
 
-	//combine with y values
-	double P = ((yt - y) / (yt - yb)) * R1 + ((y - yb) / (yt - yb)) * R2;
-
-	//kept separate for now for convenience if we want to print out values
-	//printf("DORP\n");
-	return P;
+	//combine with y values and return
+	return ((yt - y) / (yt - yb)) * R1 + ((y - yb) / (yt - yb)) * R2;
 }
 
 
@@ -150,7 +148,7 @@ double getHeightAt(OutputData* out, float* inputData, int pixelX, int pixelY) {
 	//verify that the supplied pixel coordinates are appropriate
 	if (pixelX < out->pixelMinx || pixelX > out->pixelMaxx || pixelY < out->pixelMiny || pixelY > out->pixelMaxy) {
 		//printf("Out of bounds here!! %d %d %d %d %d %d %d  \n", pixelX,pixelY,out->pixelWidth, out->minx, out->maxx, out->miny, out->maxy);
-		return 0;// TODO: This will minimise damage to calcs for now!  FIX ME!   -DBL_MAX; // a height of this means there is some kind of error!
+		return 0;	// TODO: This will minimise damage to calcs for now!  FIX ME!   -DBL_MAX; // a height of this means there is some kind of error!
 	}
 	else {
 		//printf("I segfault here! %d \n",inputData[lineate(pixelX,pixelY,out->pixelWidth)]);
@@ -164,11 +162,10 @@ double getHeightAt(OutputData* out, float* inputData, int pixelX, int pixelY) {
  */
 double getHeightAtMeters(OutputData* out, float* inputData, int mX, int mY) {
 	if (mX < out->minx || mX >= out->maxx || mY < out->miny || mY >= out->maxy) {
-		//printf("GOT ILLEGAL GHAM!!  %d %d  \n", mX, mY);
 		return 0;
 	}
 	else {
-		//printf("GOT GHAM!!  %d %d %d %d \n", mX, mY, coordinateToPixelX(out, mX), coordinateToPixelY(out, mY));
+		//printf("%d %d %d %d \n", mX, mY, coordinateToPixelX(out, mX), coordinateToPixelY(out, mY));
 		return getHeightAt(out, inputData, coordinateToPixelX(out, mX), coordinateToPixelY(out, mY));
 	}
 }
@@ -248,15 +245,14 @@ double getBliniearHeight(OutputData* out, float* inputData, int xmet, int ymet) 
 			jty = pixelCentreY;
 			jby = pixelCentreY - out->resolution;
 
-		} else if (ycomp > 0.5) {     //top
+		} else if (ycomp > 0.5) {   //top
 									// centre top
 			jty = pixelCentreY + out->resolution;
 			jby = pixelCentreY;
 
 		} else {
 			//perfect centre, no need to interpolate
-			return getHeightAtMeters(out, inputData, xmet, ymet); //heres your problem!!
-
+			return getHeightAtMeters(out, inputData, xmet, ymet);
 		}
 	}
 	//TODO: Here really should be checking if any are equal to - dbl_max as it will for sure screw up our calculations..
@@ -293,13 +289,11 @@ int coordinateToPixelY(OutputData* out, long y) {
  * Converts a 2D array position into its corresponding position in a 1D array
  */
 int lineate(int x, int y, int width) {
-	//printf("Accessing %d %d \n", x, y);
 	return (y*width) + x; ;
 }
 
 /**
  * Adjust a height to account for Earth's Curvature and Atmospheric Refraction
- * JJH:
  */
 double adjustHeight(double height, double distance, double earthD, double refractionC) {
 	return height - ((distance*distance) / earthD) + refractionC * ((distance*distance) / earthD);
@@ -309,18 +303,20 @@ double adjustHeight(double height, double distance, double earthD, double refrac
  * Runs a single ray-trace from one point to another point, return whether the end point is visible
  */
 int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, int x2, int y2) {
+	// printf("DATA %d %d %d %d \n", x1, y1, x2, y2);
 
-	//printf("DATA %d %d %d %d \n", x1, y1, x2, y2);
+	// load parameters
 	int deltax = abs(x2 - x1);
 	int deltay = abs(y2 - y1);
-	int count = 0; //this is how many pixels we are in to our ray.
-	float initialHeight = 0;  //getHeightAt(fx,fy);
-	float biggestDYDXSoFar = 0; //biggest peak so far
-	float currentDYDX = 0; //current peak
-	char visible = 0;   //used a char here, bool doesnt exist!
-	float tempHeight = 0; //temp height used for offset comparisons.
+	int count = 0; 					// this is how many pixels we are in to our line
+	float initialHeight = 0;  		// getHeightAt(fx,fy);
+	float biggestDYDXSoFar = 0; 	// biggest peak so far
+	float currentDYDX = 0; 			// current peak
+	char visible = 0;   			// used a char here, bool doesnt exist!
+	float tempHeight = 0; 			// temp height used for offset comparisons.
 	float distanceTravelled = 0;
 
+	// verify data bounds
 	if (x1 < data->minx || x1 > data->maxx || y1 < data->miny || y1 > data->maxy) {
 		printf("Illegal Coordinate1:%d,%d\n", x1, y1);
 		printOutput(data);
@@ -332,13 +328,9 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
 
 	int x = x1;           // Start x off at the first pixel
 	int y = y1;           // Start y off at the first pixel
-	int xinc1;
-	int xinc2;
-	int yinc1;
-	int yinc2;
-	int curpixel;
-	int den, num, numadd, numpixels;
+	int xinc1, xinc2, yinc1, yinc2, curpixel, den, num, numadd, numpixels;
 
+	// Bresenham's Line Algorithm
 	if (x2 >= x1)       // The x-values are increasing
 	{
 		xinc1 = data->resolution;
@@ -380,23 +372,33 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
 		numpixels = deltay;   // There are more y-values than x-values
 	}
 
+<<<<<<< HEAD
+	// move along the line
+=======
 
 	//TODO: IMPLEMENT adjustHeight()
 
 
+>>>>>>> f4cfed564188d00a5cafcdf52f4d8131ed429709
 	for (curpixel = 0; curpixel <= numpixels; curpixel += data->resolution){
 
 		//pixel location for end point
 		int x1pixel = coordinateToPixelX(data, (long)x);
 		int y1pixel = coordinateToPixelY(data, (long)y);
+<<<<<<< HEAD
+		// printf("%i %i, \n", x1pixel, y1pixel);
+		
+=======
 
+>>>>>>> f4cfed564188d00a5cafcdf52f4d8131ed429709
 		//distance travelled so far
 		distanceTravelled = distance(x1, y1, x, y);
+		// printf("distance travelled %d\n", distanceTravelled);
 
 		//if we are on the first pixel (center of the circle)
 		if (count == 0) {
-
 			initialHeight = getBliniearHeight(data, inputData, x, y) + program_options.observerHeight; //set the initial height
+			// printf("initial height %d\n", initialHeight);
 			visible = 1;  //we of course can see ourselves
 
 		//we are on the second pixel
@@ -404,6 +406,7 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
 
 			//first step definitely visible, just record the DY/DX and move on
 			biggestDYDXSoFar = (adjustHeight(getBliniearHeight(data, inputData, x, y), distanceTravelled, EARTH_DIAMETER, REFRACTION_COEFFICIENT) - initialHeight) / distanceTravelled;
+			// printf("first height %d\n", biggestDYDXSoFar);
 			visible = 1; //again, obviously visible
 
 		//we are past the second pixel
@@ -411,9 +414,11 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
 
 			//the height of the top of the object in the landscape
 			tempHeight = (adjustHeight(getBliniearHeight(data, inputData, x, y), distanceTravelled, EARTH_DIAMETER, REFRACTION_COEFFICIENT) - initialHeight + program_options.targetHeight) / distanceTravelled;
+			// printf("tmp height %d\n", tempHeight);
 
 			//the height of the base of the object in the landscape
 			currentDYDX = (adjustHeight(getBliniearHeight(data, inputData, x, y), distanceTravelled, EARTH_DIAMETER, REFRACTION_COEFFICIENT) - initialHeight) / distanceTravelled;
+			// printf("currentDYDX %d\n", currentDYDX);
 
 			//is the angle bigger than we have seen?
 			if ((tempHeight - biggestDYDXSoFar) >= 0) {
@@ -429,6 +434,9 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
 		}
 
 		//increment outselves along the line
+<<<<<<< HEAD
+		count++; 
+=======
 		count++;
 
 		// printf ("Current blin height %.6f \n", getBliniearHeight(data, inputData, x ,y) - initialHeight);
@@ -436,6 +444,7 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
 		if (visible == 1) { //if we are visible, mark it in the output data.
 			data->data[lineate(x1pixel, y1pixel, data->pixelWidth)] = 1;//
 		}
+>>>>>>> f4cfed564188d00a5cafcdf52f4d8131ed429709
 
 		//update iterators
 		num += numadd;      // Increase the numerator by the top of the fraction
@@ -755,7 +764,7 @@ void viewshed() {
 			0, 0);
 
 		//now we create a new file.
-		GDALDriverH   hDriver = GDALGetDriverByName("GTiff");
+		GDALDriverH hDriver = GDALGetDriverByName("GTiff");
 		GDALDatasetH hDstDS;
 		char **papszOptions = NULL;
 		if (program_options.outputFileName == (void *)0) {
@@ -769,8 +778,13 @@ void viewshed() {
 		}
 
 		//set the transform params for the output file
+<<<<<<< HEAD
+		double adfGeoTransformO[6] = { static_cast<double>(output.minx), static_cast<double>(program_options.resolution), 
+			0,  static_cast<double>(output.maxy), 0, static_cast<double>(-program_options.resolution) };
+=======
 		// double adfGeoTransformO[6] = { output.minx, program_options.resolution, 0,  output.maxy, 0, -program_options.resolution };
 		double adfGeoTransformO[6] = { static_cast<double>(output.minx), static_cast<double>(program_options.resolution), 0, static_cast<double>( output.maxy), 0, static_cast<double>(-program_options.resolution) };
+>>>>>>> f4cfed564188d00a5cafcdf52f4d8131ed429709
 		GDALSetGeoTransform(hDstDS, adfGeoTransformO);
 
 		//set projection
@@ -829,10 +843,9 @@ int lineOfSight() {
 
 		//init some variables
 		GDALRasterBandH hBand;
-		int             nBlockXSize, nBlockYSize;
-		int             bGotMin, bGotMax;
-		double          adfMinMax[2];
-		float   *pafScanline;
+		int nBlockXSize, nBlockYSize, bGotMin, bGotMax;
+		double adfMinMax[2];
+		float  *pafScanline;
 
 		//get the band from the raster (there will only be one)
 		hBand = GDALGetRasterBand(hDataset, 1);
@@ -845,11 +858,11 @@ int lineOfSight() {
 			GDALComputeRasterMinMax(hBand, TRUE, adfMinMax);
 
 		//get the dimensions of the band
-		int   nXSize = GDALGetRasterBandXSize(hBand);
-		int   nYSize = GDALGetRasterBandYSize(hBand);
+		int nXSize = GDALGetRasterBandXSize(hBand);
+		int nYSize = GDALGetRasterBandYSize(hBand);
 
-		//get the transforminfo
-		double  adfGeoTransform[6];
+		//get the transform info
+		double adfGeoTransform[6];
 		if (GDALGetGeoTransform(hDataset, adfGeoTransform) == CE_None) {
 
 			//TODO: should we take come action here...?
@@ -881,14 +894,17 @@ int lineOfSight() {
 		pafScanline = (float *)CPLMalloc(sizeof(float)*(nXSize)*(nYSize));
 
 		//read the whole thing in..
-		GDALRasterIO(hBand, GF_Read, 0, 0, nXSize, nYSize,
-			pafScanline, nXSize, nYSize, GDT_Float32,
-			0, 0);
+		GDALRasterIO(hBand, GF_Read, 0, 0, nXSize, nYSize, pafScanline, nXSize, nYSize, GDT_Float32, 0, 0);
 
 		//do LoS analysis...
 		int completelyVisible1 = doSingleRTPointToPoint(pafScanline, &output, program_options.ax, program_options.ay, program_options.bx, program_options.by);
+<<<<<<< HEAD
+	
+		//...then do it again in the opposite direction - this is to remove false negatives in comparison with the viewshed (different Bresenham lines give different results)
+=======
 
 		//JJH: ...then do it again in the opposite direction - this is to remove false negatives in comparison with the viewshed (different Bresenham lines give different results)
+>>>>>>> f4cfed564188d00a5cafcdf52f4d8131ed429709
 		//TODO: Should this be optional?
 		int completelyVisible2 = doSingleRTPointToPoint(pafScanline, &output, program_options.bx, program_options.by, program_options.ax, program_options.ay);
 
@@ -1083,7 +1099,7 @@ int main(int argc, char **argv) {
 
 	//verify that we actually have a file name
 	if (program_options.inputFileName == (void *)0) {
-		printf("No input data specified!. Cowardly aborting..\n");
+		printf("No input data specified!\n");
 		exit(1);
 	}
 
