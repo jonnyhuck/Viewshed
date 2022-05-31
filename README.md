@@ -37,9 +37,11 @@ Would run a viewshed of 20km around the point 345678,456789 assuming a 1.5m tall
 
 To use with the included demo data, you could use, for example:
 Generate a Viewshed:
+
 `./viewshed -r 10000 -x 325000 -y 515000 -z 50 -o 1.5 -t 100 -i data.tif -f viewshed.tif`
 
 Determine point-to-point visibility - returns 1 (true) or 0 (false)):
+
 `./viewshed -p -j 325000 -k 515000 -l 326000 -m 516000 -o 1.5 -t 100 -i data.tif`
 
 #### Python Usage
