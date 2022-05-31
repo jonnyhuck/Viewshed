@@ -33,7 +33,14 @@ For example:
 
 `./viewshed -r 20000 -x 345678 -y 456789 -z 50 -o 1.5 -t 100 -i DEM.tif -f VIEWSHED.tif`
 
-Would run a viewshed of 20km around the point 345678,456789 assuming a 1.5m tall person looking for a 100m tall object in the landscape. The input data (50m resolution) would be DEM.tif and the output file would be saved to VIEWSHED.tif
+Would run a viewshed of 20km around the point 345678,456789 assuming a 1.5m tall person looking for a 100m tall object in the landscape. The input data (50m resolution) would be DEM.tif and the output file would be saved to VIEWSHED.tif.
+
+To use with the included demo data, you could use, for example:
+Generate a Viewshed:
+`./viewshed -r 10000 -x 325000 -y 515000 -z 50 -o 1.5 -t 100 -i data.tif -f viewshed.tif`
+
+Determine point-to-point visibility - returns 1 (true) or 0 (false)):
+`./viewshed -p -j 325000 -k 515000 -l 326000 -m 516000 -o 1.5 -t 100 -i data.tif`
 
 #### Python Usage
 
