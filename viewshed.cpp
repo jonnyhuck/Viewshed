@@ -372,25 +372,19 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
 		numpixels = deltay;   // There are more y-values than x-values
 	}
 
-<<<<<<< HEAD
 	// move along the line
-=======
 
 	//TODO: IMPLEMENT adjustHeight()
 
 
->>>>>>> f4cfed564188d00a5cafcdf52f4d8131ed429709
 	for (curpixel = 0; curpixel <= numpixels; curpixel += data->resolution){
 
 		//pixel location for end point
 		int x1pixel = coordinateToPixelX(data, (long)x);
 		int y1pixel = coordinateToPixelY(data, (long)y);
-<<<<<<< HEAD
 		// printf("%i %i, \n", x1pixel, y1pixel);
 		
-=======
 
->>>>>>> f4cfed564188d00a5cafcdf52f4d8131ed429709
 		//distance travelled so far
 		distanceTravelled = distance(x1, y1, x, y);
 		// printf("distance travelled %d\n", distanceTravelled);
@@ -434,17 +428,7 @@ int doSingleRTPointToPoint(float* inputData, OutputData* data, int x1, int y1, i
 		}
 
 		//increment outselves along the line
-<<<<<<< HEAD
-		count++; 
-=======
 		count++;
-
-		// printf ("Current blin height %.6f \n", getBliniearHeight(data, inputData, x ,y) - initialHeight);
-		// printf("Biggest: %.6f, Current %.6f \n", biggestDYDXSoFar, currentDYDX);
-		if (visible == 1) { //if we are visible, mark it in the output data.
-			data->data[lineate(x1pixel, y1pixel, data->pixelWidth)] = 1;//
-		}
->>>>>>> f4cfed564188d00a5cafcdf52f4d8131ed429709
 
 		//update iterators
 		num += numadd;      // Increase the numerator by the top of the fraction
@@ -778,13 +762,8 @@ void viewshed() {
 		}
 
 		//set the transform params for the output file
-<<<<<<< HEAD
-		double adfGeoTransformO[6] = { static_cast<double>(output.minx), static_cast<double>(program_options.resolution), 
-			0,  static_cast<double>(output.maxy), 0, static_cast<double>(-program_options.resolution) };
-=======
 		// double adfGeoTransformO[6] = { output.minx, program_options.resolution, 0,  output.maxy, 0, -program_options.resolution };
 		double adfGeoTransformO[6] = { static_cast<double>(output.minx), static_cast<double>(program_options.resolution), 0, static_cast<double>( output.maxy), 0, static_cast<double>(-program_options.resolution) };
->>>>>>> f4cfed564188d00a5cafcdf52f4d8131ed429709
 		GDALSetGeoTransform(hDstDS, adfGeoTransformO);
 
 		//set projection
@@ -898,13 +877,8 @@ int lineOfSight() {
 
 		//do LoS analysis...
 		int completelyVisible1 = doSingleRTPointToPoint(pafScanline, &output, program_options.ax, program_options.ay, program_options.bx, program_options.by);
-<<<<<<< HEAD
-	
-		//...then do it again in the opposite direction - this is to remove false negatives in comparison with the viewshed (different Bresenham lines give different results)
-=======
 
 		//JJH: ...then do it again in the opposite direction - this is to remove false negatives in comparison with the viewshed (different Bresenham lines give different results)
->>>>>>> f4cfed564188d00a5cafcdf52f4d8131ed429709
 		//TODO: Should this be optional?
 		int completelyVisible2 = doSingleRTPointToPoint(pafScanline, &output, program_options.bx, program_options.by, program_options.ax, program_options.ay);
 
